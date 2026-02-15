@@ -91,8 +91,8 @@ const App: React.FC = () => {
       {/* Sidebar */}
       <aside className="w-52 flex-shrink-0 border-r border-border bg-surface flex flex-col">
         <div className="p-6 flex items-center gap-3">
-          <div className="size-8 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-            <span className="material-symbols-outlined text-lg">hub</span>
+          <div className="size-8 rounded-xl flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20 ring-1 ring-slate-200/50">
+            <img src="/dashboard.png" alt="" className="size-full object-cover" />
           </div>
           <h1 className="text-lg font-bold tracking-tight text-slate-900">
             Home-Dashboard

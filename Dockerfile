@@ -23,7 +23,9 @@ WORKDIR /app
 COPY server.js ./
 COPY --from=builder /app/dist ./dist
 
-# config.yaml can be mounted at /app/dist/config.yaml at runtime
+# At runtime, mount:
+#   config:  -v /path/to/config.yaml:/app/dist/config.yaml
+#   icons:   -v /path/to/icons:/app/dist/icons
 ENV PORT=80
 EXPOSE 80
 

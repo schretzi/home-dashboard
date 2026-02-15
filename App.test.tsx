@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import yaml from 'js-yaml';
 import App from './App';
 import { MOCK_SERVICES } from './constants';
 
@@ -23,10 +24,10 @@ global.fetch = mockFetch;
 describe('App Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Default successful fetch response with empty data (triggers fallback to constants)
+    // Default successful fetch response with MOCK data (since app defaults to empty now)
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({}),
+      text: async () => yaml.dump({ services: MOCK_SERVICES, diagrams: [] }),
     });
   });
 
@@ -44,7 +45,7 @@ describe('App Component', () => {
     
     // Check for default view
     expect(screen.getByText('Services Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Exposed Services')).toBeInTheDocument();
+    expect(screen.getByText('Internal Services')).toBeInTheDocument();
     
     // Check if a mock service is present
     expect(screen.getByText(MOCK_SERVICES[0].name)).toBeInTheDocument();
@@ -82,7 +83,7 @@ describe('App Component', () => {
     expect(screen.queryByText('Pi-hole')).not.toBeInTheDocument();
   });
 
-  test('loads external configuration from config.json', async () => {
+  test('loads external configuration from config.yaml', async () => {
     const customService = {
       id: '99',
       name: 'Custom App',
@@ -96,7 +97,7 @@ describe('App Component', () => {
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ services: [customService] }),
+      text: async () => yaml.dump({ services: [customService] }),
     });
 
     render(<App />);
@@ -105,6 +106,28 @@ describe('App Component', () => {
       expect(screen.getByText('Custom App')).toBeInTheDocument();
     });
     expect(screen.getByText('Loaded from config')).toBeInTheDocument();
+  });
+
+  test('renders external services in separate section', async () => {
+    const externalService = {
+      id: '100',
+      name: 'External App',
+      description: 'Public link',
+      hostname: 'google.com',
+      port: 443,
+      icon: 'public',
+      type: 'external',
+      url: 'https://google.com'
+    };
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      text: async () => yaml.dump({ services: [externalService] }),
+    });
+
+    render(<App />);
+    await waitFor(() => screen.getByText('External App'));
+    expect(screen.getByText('External Services')).toBeInTheDocument();
   });
 
   test('opens diagram viewer when a diagram is clicked', async () => {

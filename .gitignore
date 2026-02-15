@@ -1,1 +1,8 @@
 .DS_Store
+config.yaml
+node_modules
+dist
+build
+.env
+coverage
+vite-env.d.ts

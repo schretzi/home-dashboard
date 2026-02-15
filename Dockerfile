@@ -15,17 +15,16 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Production stage: Node server serves static files + /api/status (no CORS)
+FROM node:20-alpine
 
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
 
-# Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY server.js ./
+COPY --from=builder /app/dist ./dist
 
-# Expose port 80
+# config.yaml can be mounted at /app/dist/config.yaml at runtime
+ENV PORT=80
 EXPOSE 80
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "server.js"]

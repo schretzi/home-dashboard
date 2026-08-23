@@ -1,20 +1,20 @@
 services:
-  - id: custom-1
-    name: Custom Dashboard
-    description: A service using a custom mounted icon from the external volume.
-    hostname: custom.local
-    port: 9000
-    icon: /icons/my-custom-icon.png
-    type: internal
-    url: http://192.168.1.100:9000
   - id: "1"
-    name: Plex Media Server
-    description: High-definition home media server and streaming center.
-    hostname: media-server.local
-    port: 32400
-    icon: play_circle
-    type: internal
-    url: http://192.168.1.50:32400
+    name: "Grafana"
+    description: "Grafana installation with dashboards for home services"
+    hostname: "grafana
+    port: 3000
+    icon: "/icons/grafana.png"
+    type: "internal"
+    url: "http://192.168.1.146:3000"
+  - id: "2"
+    name: "Prometheus"
+    description: "Dashboard on prometheus server"
+    hostname: "prometheus"
+    port: 9090
+    icon: "icons/prometheus.png"
+    type: "internal"
+    url: "http://192.168.1.146:9090"
 diagrams:
   - id: d1
     filename: network_topology_2024.png

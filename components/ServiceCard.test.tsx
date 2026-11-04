@@ -1,89 +1,61 @@
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ServiceCard from './ServiceCard';
-import { NetworkService } from '../types';
+import { Dienst } from '../types';
 
-const mockService: NetworkService = {
-  id: '1',
-  name: 'Test Service',
-  description: 'A test service description',
-  hostname: 'test.local',
-  port: 8080,
-  icon: 'dns',
-  type: 'internal',
-  url: 'http://test.local'
+const dienst: Dienst = {
+  name: 'Home Assistant',
+  gruppe: 'Smarthome',
+  art: 'dienst',
+  host: 'ha',
+  beschreibung: null,
+  icon: 'homeassistant.webp',
+  ziel: 'https://ha.um.schretzi.net/manifest.json',
+  link: 'https://ha.um.schretzi.net',
+  ok: true,
+  dauer_ms: 42,
 };
 
-describe('ServiceCard Component', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
+describe('ServiceCard', () => {
+  afterEach(() => jest.restoreAllMocks());
 
-  afterEach(() => {
-    jest.useRealTimers();
-    jest.restoreAllMocks();
-  });
-
-  test('renders service details correctly', () => {
-    render(<ServiceCard service={mockService} />);
-    
-    expect(screen.getByText('Test Service')).toBeInTheDocument();
-    expect(screen.getByText('A test service description')).toBeInTheDocument();
-    expect(screen.getByText('test.local')).toBeInTheDocument();
-    expect(screen.getByText('PORT 8080')).toBeInTheDocument();
-  });
-
-  test('displays "External" status immediately for external services', () => {
-    const externalService: NetworkService = { ...mockService, type: 'external' };
-    render(<ServiceCard service={externalService} />);
-    
-    expect(screen.getByText('External')).toBeInTheDocument();
-    // Should not show Checking
-    expect(screen.queryByText('Checking')).not.toBeInTheDocument();
-  });
-
-  test('starts in "Checking" state for internal services', () => {
-    render(<ServiceCard service={mockService} />);
-    expect(screen.getByText('Checking')).toBeInTheDocument();
-  });
-
-  test('updates status to "Online" when check succeeds', async () => {
-    // Mock Math.random to ensure success (> 0.1)
-    // We use 0.5: 
-    // 1. Delay calculation: 800 + 0.5 * 1000 = 1300ms
-    // 2. Success check: 0.5 > 0.1 = true
-    jest.spyOn(Math, 'random').mockReturnValue(0.5);
-
-    render(<ServiceCard service={mockService} />);
-    
-    expect(screen.getByText('Checking')).toBeInTheDocument();
-
-    // Fast-forward time past the simulated delay
-    await act(async () => {
-      jest.advanceTimersByTime(2000);
-    });
-
+  test('zeigt Online mit Antwortzeit', () => {
+    render(<ServiceCard dienst={dienst} />);
+    expect(screen.getByText('Home Assistant')).toBeInTheDocument();
     expect(screen.getByText('Online')).toBeInTheDocument();
-    expect(screen.queryByText('Checking')).not.toBeInTheDocument();
+    expect(screen.getByText('42 ms')).toBeInTheDocument();
   });
 
-  test('updates status to "Offline" when check fails', async () => {
-    // Mock Math.random to ensure failure (<= 0.1)
-    // We use 0.05:
-    // 1. Delay calculation: 800 + 0.05 * 1000 = 850ms
-    // 2. Success check: 0.05 > 0.1 = false
-    jest.spyOn(Math, 'random').mockReturnValue(0.05);
-
-    render(<ServiceCard service={mockService} />);
-    
-    expect(screen.getByText('Checking')).toBeInTheDocument();
-
-    // Fast-forward time
-    await act(async () => {
-      jest.advanceTimersByTime(2000);
-    });
-
+  test('zeigt Offline', () => {
+    render(<ServiceCard dienst={{ ...dienst, ok: false }} />);
     expect(screen.getByText('Offline')).toBeInTheDocument();
+  });
+
+  test('Link ohne Pruefung', () => {
+    render(<ServiceCard verweis={{ name: 'UniFi', url: 'https://unifi.ui.com' }} />);
+    expect(screen.getByText('Link')).toBeInTheDocument();
+  });
+
+  test('Linksklick oeffnet per window.open einen neuen Tab', () => {
+    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
+    render(<ServiceCard dienst={dienst} />);
+    const a = screen.getByRole('link', { name: /Öffnen/ });
+    expect(a).toHaveAttribute('href', 'https://ha.um.schretzi.net');
+    expect(a).toHaveAttribute('target', '_blank');
+    fireEvent.click(a, { button: 0 });
+    expect(open).toHaveBeenCalledWith('https://ha.um.schretzi.net', '_blank', 'noopener,noreferrer');
+  });
+
+  test('Strg-Klick bleibt dem Browser ueberlassen', () => {
+    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
+    render(<ServiceCard dienst={dienst} />);
+    fireEvent.click(screen.getByRole('link', { name: /Öffnen/ }), { button: 0, ctrlKey: true });
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  test('ohne Link kein Knopf', () => {
+    render(<ServiceCard dienst={{ ...dienst, link: null }} />);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

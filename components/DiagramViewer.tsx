@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { NetworkDiagram } from '../types';
+import { Diagramm } from '../types';
 
 interface DiagramViewerProps {
-  diagram: NetworkDiagram;
+  diagram: Diagramm;
   onClose: () => void;
 }
 
@@ -23,26 +23,27 @@ const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagram, onClose }) => {
             <span className="material-symbols-outlined">schema</span>
           </div>
           <div>
-            <h3 className="text-white font-bold">{diagram.filename}</h3>
-            <p className="text-slate-400 text-xs">{diagram.description} • {diagram.metadata}</p>
+            <h3 className="text-white font-bold">{diagram.datei}</h3>
+            <p className="text-slate-400 text-xs">{diagram.beschreibung ?? ''}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <div className="flex bg-white/5 rounded-lg p-1 border border-white/10 mr-4">
-            <button onClick={handleZoomOut} className="p-2 hover:bg-white/10 text-white rounded-md transition-colors" title="Zoom Out">
+            <button onClick={handleZoomOut} className="p-2 hover:bg-white/10 text-white rounded-md transition-colors" title="Verkleinern">
               <span className="material-symbols-outlined">remove</span>
             </button>
             <button onClick={handleReset} className="px-3 text-white text-xs font-bold hover:bg-white/10 rounded-md transition-colors">
               {Math.round(zoom * 100)}%
             </button>
-            <button onClick={handleZoomIn} className="p-2 hover:bg-white/10 text-white rounded-md transition-colors" title="Zoom In">
+            <button onClick={handleZoomIn} className="p-2 hover:bg-white/10 text-white rounded-md transition-colors" title="Vergrößern">
               <span className="material-symbols-outlined">add</span>
             </button>
           </div>
           
           <button 
             onClick={onClose}
+            title="Schließen"
             className="size-10 flex items-center justify-center rounded-xl bg-white/5 text-white hover:bg-rose-500 hover:text-white transition-all"
           >
             <span className="material-symbols-outlined">close</span>
@@ -57,8 +58,8 @@ const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagram, onClose }) => {
           style={{ transform: `scale(${zoom})` }}
         >
           <img 
-            src={diagram.imageUrl} 
-            alt={diagram.filename} 
+            src={diagram.url} 
+            alt={diagram.datei} 
             className="max-w-none shadow-2xl rounded-sm border border-white/10"
           />
         </div>
@@ -68,7 +69,7 @@ const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagram, onClose }) => {
       <div className="h-12 flex items-center justify-center px-6 bg-slate-900/50 text-white/50 text-xs">
         <span className="flex items-center gap-2">
           <span className="material-symbols-outlined text-sm">info</span>
-          Interactive View: Use scroll to pan, controls above to zoom.
+          Scrollen zum Verschieben, oben zoomen.
         </span>
       </div>
     </div>

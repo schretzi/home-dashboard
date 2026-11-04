@@ -1,13 +1,13 @@
 {
   "name": "home-dashboard",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"npm run dev:api\"",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "jest",
+    "test": "jest && node --test server.test.mjs",
     "dev:api": "cross-env API_ONLY=1 PORT=3001 node server.js",
     "start": "node server.js"
   },

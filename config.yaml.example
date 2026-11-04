@@ -1,25 +1,18 @@
-services:
-  - id: "1"
-    name: "Grafana"
-    description: "Grafana installation with dashboards for home services"
-    hostname: "grafana
-    port: 3000
-    icon: "/icons/grafana.png"
-    type: "internal"
-    url: "http://192.168.1.146:3000"
-  - id: "2"
-    name: "Prometheus"
-    description: "Dashboard on prometheus server"
-    hostname: "prometheus"
-    port: 9090
-    icon: "icons/prometheus.png"
-    type: "internal"
-    url: "http://192.168.1.146:9090"
-diagrams:
-  - id: d1
-    filename: network_topology_2024.png
-    description: Main infrastructure layout
-    metadata: 3840 x 2160
-    size: 2.4 MB
-    lastUpdated: 2h ago
-    imageUrl: https://picsum.photos/seed/network1/2000/1500
+# home-dashboard (ab v0.1.0). Die geprueften Dienste kommen aus Prometheus
+# (prometheus/conf/ziele/*.yml, Labels name/gruppe/link/icon/beschreibung) - hier stehen nur
+# die Reihenfolge der Gruppen, Links ohne Pruefung und Beschreibungen der Diagramme.
+gruppen: [Smarthome, Hermes, Finanzen, Monitoring, Server, Netzplan, Netz]
+
+links:
+  - {name: UniFi, url: 'https://unifi.ui.com', icon: ubiquiti.png, gruppe: Cloud,
+     beschreibung: 'Netzwerkverwaltung (UDM)'}
+  - {name: Tailscale, url: 'https://login.tailscale.com/admin/machines', icon: tailscale.png, gruppe: Cloud,
+     beschreibung: 'VPN, Geraete'}
+  - {name: Shelly Cloud, url: 'https://control.shelly.cloud', icon: power, gruppe: Cloud}
+  - {name: Ecowitt, url: 'https://www.ecowitt.net/home/login', icon: ecowitt.png, gruppe: Cloud,
+     beschreibung: 'Wetterstation'}
+  - {name: Watermeter, url: 'http://192.168.4.15', icon: watermeter.png, gruppe: Smarthome,
+     beschreibung: 'Wasserzaehler - von der NAS aus derzeit gesperrt (Firewall), daher ohne Pruefung'}
+
+diagramme:
+  network-map.png: 'Netzplan (Stand Februar, wird neu erstellt)'

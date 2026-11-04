@@ -1,150 +1,55 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import yaml from 'js-yaml';
-import App from './App';
-import { MOCK_SERVICES } from './constants';
+import App, { gruppieren } from './App';
 
-// Mock the DiagramViewer component since it is a child component
-jest.mock('./components/DiagramViewer', () => {
-  return function DummyDiagramViewer({ onClose, diagram }: any) {
-    return (
-      <div data-testid="diagram-viewer">
-        <span>Viewing: {diagram.filename}</span>
-        <button onClick={onClose}>Close Viewer</button>
-      </div>
-    );
+const DIENSTE = [
+  { name: 'Grafana', gruppe: 'Monitoring', art: 'dienst', host: 'slnas02', beschreibung: null, icon: null,
+    ziel: 'http://grafana:3000/api/health', link: 'http://slnas02:3000', ok: true, dauer_ms: 5 },
+  { name: 'Home Assistant', gruppe: 'Smarthome', art: 'dienst', host: 'ha', beschreibung: null, icon: null,
+    ziel: 'https://ha.um.schretzi.net/manifest.json', link: 'https://ha.um.schretzi.net', ok: false, dauer_ms: 8000 },
+];
+const KONFIG = 'gruppen: [Smarthome, Monitoring]\nlinks:\n  - {name: UniFi, url: "https://unifi.ui.com", gruppe: Extern}\n';
+
+function antworten(url: string) {
+  const body: Record<string, unknown> = {
+    '/api/dienste': DIENSTE,
+    '/api/alarme': [{ name: 'DienstNichtErreichbar', schwere: 'kritisch', text: 'Home Assistant nicht erreichbar', seit: '2026-11-04T20:00:00Z' }],
+    '/api/diagramme': [],
   };
+  if (url === '/config.yaml') return Promise.resolve({ ok: true, text: async () => KONFIG });
+  return Promise.resolve({ ok: true, json: async () => body[url] });
+}
+
+beforeEach(() => {
+  (global as any).fetch = jest.fn(antworten);
 });
 
-// Mock global fetch
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
+test('gruppieren: Reihenfolge aus config, Rest alphabetisch', () => {
+  const g = gruppieren([{ gruppe: 'B' }, { gruppe: 'Z' }, { gruppe: 'A' }], ['Z']).map(([n]) => n);
+  expect(g).toEqual(['Z', 'A', 'B']);
+});
 
-describe('App Component', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    // Default successful fetch response with MOCK data (since app defaults to empty now)
-    mockFetch.mockResolvedValue({
-      ok: true,
-      text: async () => yaml.dump({ services: MOCK_SERVICES, diagrams: [] }),
-    });
-  });
+test('zeigt Dienste nach Gruppen, Zaehler und Alarme', async () => {
+  render(<App />);
+  await waitFor(() => expect(screen.getByText('Grafana')).toBeInTheDocument());
+  const ueberschriften = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+  expect(ueberschriften.slice(1)).toEqual(['Smarthome', 'Monitoring']);
+  expect(screen.getByText('1/2 online')).toBeInTheDocument();
+  expect(screen.getByText('Home Assistant nicht erreichbar')).toBeInTheDocument();
+});
 
-  test('renders loading state initially', () => {
-    render(<App />);
-    expect(screen.getByText(/Initializing Network Hub/i)).toBeInTheDocument();
-  });
+test('nur Stoerungen filtert', async () => {
+  render(<App />);
+  await waitFor(() => screen.getByText('Grafana'));
+  fireEvent.click(screen.getByLabelText('nur Störungen'));
+  expect(screen.queryByText('Grafana')).not.toBeInTheDocument();
+  expect(screen.getByText('Home Assistant')).toBeInTheDocument();
+});
 
-  test('renders dashboard with default services after loading', async () => {
-    render(<App />);
-    
-    await waitFor(() => {
-      expect(screen.getByText('Home-Dashboard')).toBeInTheDocument();
-    });
-    
-    // Check for default view
-    expect(screen.getByText('Services Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Internal Services')).toBeInTheDocument();
-    
-    // Check if a mock service is present
-    expect(screen.getByText(MOCK_SERVICES[0].name)).toBeInTheDocument();
-  });
-
-  test('navigates between Services and Diagrams views', async () => {
-    render(<App />);
-    await waitFor(() => screen.getByText('Home-Dashboard'));
-
-    // Switch to Diagrams
-    const diagramsButton = screen.getByText('Diagrams');
-    fireEvent.click(diagramsButton);
-
-    expect(screen.getByText('Diagrams Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Network Diagrams')).toBeInTheDocument();
-
-    // Switch back to Services
-    const servicesButton = screen.getByText('Services');
-    fireEvent.click(servicesButton);
-
-    expect(screen.getByText('Services Dashboard')).toBeInTheDocument();
-  });
-
-  test('filters content based on search query', async () => {
-    render(<App />);
-    await waitFor(() => screen.getByText('Home-Dashboard'));
-
-    const searchInput = screen.getByPlaceholderText('Find a service or file...');
-    
-    // Search for a specific service (e.g., "Plex")
-    fireEvent.change(searchInput, { target: { value: 'Plex' } });
-    
-    expect(screen.getByText('Plex')).toBeInTheDocument();
-    // Ensure other services are filtered out
-    expect(screen.queryByText('Pi-hole')).not.toBeInTheDocument();
-  });
-
-  test('loads external configuration from config.yaml', async () => {
-    const customService = {
-      id: '99',
-      name: 'Custom App',
-      description: 'Loaded from config',
-      hostname: 'custom.local',
-      port: 9000,
-      icon: 'star',
-      type: 'internal',
-      url: 'http://custom.local'
-    };
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      text: async () => yaml.dump({ services: [customService] }),
-    });
-
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Custom App')).toBeInTheDocument();
-    });
-    expect(screen.getByText('Loaded from config')).toBeInTheDocument();
-  });
-
-  test('renders external services in separate section', async () => {
-    const externalService = {
-      id: '100',
-      name: 'External App',
-      description: 'Public link',
-      hostname: 'google.com',
-      port: 443,
-      icon: 'public',
-      type: 'external',
-      url: 'https://google.com'
-    };
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      text: async () => yaml.dump({ services: [externalService] }),
-    });
-
-    render(<App />);
-    await waitFor(() => screen.getByText('External App'));
-    expect(screen.getByText('External Services')).toBeInTheDocument();
-  });
-
-  test('opens diagram viewer when a diagram is clicked', async () => {
-    render(<App />);
-    await waitFor(() => screen.getByText('Home-Dashboard'));
-
-    // Navigate to diagrams
-    fireEvent.click(screen.getByText('Diagrams'));
-
-    // Click on a diagram name (assuming MOCK_DIAGRAMS has data)
-    const diagramLink = screen.getByText(/network_topology/i);
-    fireEvent.click(diagramLink);
-
-    expect(screen.getByTestId('diagram-viewer')).toBeInTheDocument();
-    
-    // Close it
-    fireEvent.click(screen.getByText('Close Viewer'));
-    expect(screen.queryByTestId('diagram-viewer')).not.toBeInTheDocument();
-  });
+test('Links-Ansicht aus config.yaml', async () => {
+  render(<App />);
+  await waitFor(() => screen.getByText('Grafana'));
+  fireEvent.click(screen.getByRole('button', { name: /Links/ }));
+  expect(await screen.findByText('UniFi')).toBeInTheDocument();
 });
